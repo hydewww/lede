@@ -8,8 +8,11 @@
 name: OpenWrt-CI
 
 on:
+  push:
+    branches:
+      - master
   schedule:
-    - cron: 0 20 * * *
+    - cron: 30 2 * * *
 
 permissions:
   contents: read
@@ -58,12 +61,25 @@ jobs:
 
       - name: Update feeds
         run: |
-          sed -i 's/#src-git helloworld/src-git helloworld/g' ./feeds.conf.default
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
       - name: Generate configuration file
-        run: make defconfig
+        run: |
+          git reset --hard
+          make defconfig
+
+      - name: Final configuration file diff
+        run: ./scripts/diffconfig.sh
+
+      - name: Final configuration file
+        run: cat .config
+
+      - name: Cache Toolchain
+        uses: HiGarfield/cachewrtbuild@main
+        with:
+          ccache: false
+          mixkey: "x86"
 
       - name: Download packages
         run: make download -j16
